@@ -24,6 +24,8 @@ dependencies = [
     "transformers==4.45.1",
     "torch==2.4.1",
     "timm",
+    "numpy",
+    "opencv-python",
 ]
 
 # Map the current directory to the package name `internvideo2_multi_modality`
@@ -31,6 +33,7 @@ dependencies = [
 packages = [
     "internvideo2_multi_modality",
     "internvideo2_multi_modality.configs",
+    "internvideo2_multi_modality.demo",
     "internvideo2_multi_modality.inference",
     "internvideo2_multi_modality.models",
     "internvideo2_multi_modality.models.backbones",

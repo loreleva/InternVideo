@@ -84,6 +84,11 @@ hf download loreleva/InternVideo2-Stage2_1B-224p-f4 \
 Both loaders require a configuration file. A configuration is provided at `InternVideo/internvideo2_config.py`. Update its BERT directory and encoder weight paths to match the downloaded files. Run the example from the same working directory used above.
 
 ```python
+import cv2 as cv
+from internvideo2_multi_modality.demo.utils import (
+    _frame_from_video,
+    frames2tensor,
+)
 from internvideo2_multi_modality.inference import (
     load_text_encoder,
     load_vision_encoder,
@@ -92,24 +97,28 @@ import torch
 import torch.nn.functional as F
 
 config_path = "InternVideo/internvideo2_config.py"
-text_encoder = load_text_encoder(config_path)
-vision_encoder = load_vision_encoder(config_path)
 
+text_encoder = load_text_encoder(config_path)
+text_feat = text_encoder(["A cat playing", "A dog playing"])
+text_feat = F.normalize(text_feat, dim=-1)
+
+vision_encoder = load_vision_encoder(config_path)
 # Expected input shape: (batch_size, num_frames, channels, height, width).
 # For this checkpoint: (B, 4, 3, 224, 224).
-videos_tensor = ...
+video = cv.VideoCapture('path/to/video')
+frames = [x for x in _frame_from_video(video)]
+video_tensor = frames2tensor(
+    frames,
+    fnum=4,
+).to(dtype=vision_encoder.dtype)
 
-with torch.inference_mode():
-    text_feat = text_encoder(["A cat playing", "A dog playing"])
-    text_feat = F.normalize(text_feat, dim=-1)
+video_feat = vision_encoder(video_tensor)
+video_feat = F.normalize(video_feat, dim=-1)
 
-    video_feat = vision_encoder(videos_tensor)
-    video_feat = F.normalize(video_feat, dim=-1)
-
-    similarities = video_feat @ text_feat.T
+similarities = video_feat @ text_feat.T
 ```
 
-The video tensor must contain RGB frames sampled, resized, and normalized according to the original model's preprocessing. Its dtype and device must match the vision encoder. The example leaves video loading and preprocessing to the caller; `videos_tensor = ...` must be replaced with an actual tensor.
+The video tensor must contain RGB frames sampled, resized, and normalized according to the original model's preprocessing. Its dtype and device must match the vision encoder.
 
 ## Attribution and license
 
