@@ -1,8 +1,8 @@
-# InternVideo2
+# InternVideo
 
-This repository contains the InternVideo2 portion of [OpenGVLab's InternVideo repository](https://github.com/OpenGVLab/InternVideo). Components for other InternVideo versions have been omitted.
+This repository is a fork of [OpenGVLab's InternVideo repository](https://github.com/OpenGVLab/InternVideo).
 
-This fork adds separate vision and text encoder loaders for inference with the InternVideo2 Stage 2 checkpoint.
+This fork adds separate vision and text encoder classes for inference with the InternVideo2 Stage 2 checkpoint. These additions are located in `InternVideo2/multi_modality`.
 
 ## Installation
 
