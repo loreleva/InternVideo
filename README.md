@@ -1,43 +1,118 @@
-# InternVideo: Video Foundation Models for Multimodal Understanding
+# InternVideo2
 
-</div>
+This repository contains the InternVideo2 portion of [OpenGVLab's InternVideo repository](https://github.com/OpenGVLab/InternVideo). Components for other InternVideo versions have been omitted.
 
----
+This fork adds separate vision and text encoder loaders for inference with the InternVideo2 Stage 2 checkpoint.
 
-<div align='center'>
-<img src="./InternVideo2/figs/teaser-internvideo2.png" class="interpolation-image" alt="internvideo2_performance." height="96%" width="96%" />
-</div>
+## Installation
 
-This repo contains InternVideo series and related works in video foundation models.
+The package has been tested with:
 
-- [InternVideo](InternVideo1): general video foundation models via generative and discriminative learning
-- [InternVideo2](InternVideo2): scaling video foundation models for multimodal video understanding
-- [InternVideo2.5](InternVideo2.5): empowering video mllms with long and rich context modeling
-- [InternVideo3](InternVideo3): multimodal contextual reasoning via efficient long-horizon agents
-- [InternVideo-Next](InternVideo-Next): general video foundation models for genuine world understanding
-- [InternVid](Data/InternVid): a large-scale video-text dataset for multimodal understanding and generation
+- Python 3.11
+- CUDA 11.8
+- PyTorch 2.4.1
+- FlashAttention 2.6.3
 
-## Updates
-- `2026.06`: [InternVideo3](InternVideo3) is released with the [technical report](https://arxiv.org/abs/2606.12195), [8B instruct model](https://huggingface.co/yanziang/InternVideo3-8B-Instruct), [long-video SFT dataset](https://huggingface.co/datasets/yanziang/InternVideo3_Dataset), evaluation scripts, and an initial video-agent implementation in [Vidify](https://github.com/shepnerd/vidify).
-- `2025.12`: [InternVideo-Next](InternVideo-Next) is released with the [technical report](https://arxiv.org/abs/2512.01342), pretrained model weights in the [Hugging Face collection](https://huggingface.co/collections/OpenGVLab/internvideo-next), and pretraining code.
-- `2025.01`: [InternVideo2.5](InternVideo2.5) is now released! Check out the [technical report](https://arxiv.org/pdf/2501.12386) for detailed insights, and access the [model](https://huggingface.co/OpenGVLab/InternVL_2_5_HiCo_R16) on HuggingFace.
-- `2024.08.12`: We provide smaller models, [InternVideo2-S/B/L](./InternVideo2/single_modality/MODEL_ZOO.md), which are distilled from InternVideo2-1B. We also build smaller [VideoCLIP](./InternVideo2/multi_modality/MODEL_ZOO.md) with MobileCLIP.
-- `2024.08`: [InternVideo2-Stage3-8B](https://huggingface.co/OpenGVLab/InternVideo2-Chat-8B) and [InternVideo2-Stage3-8B-HD](https://huggingface.co/OpenGVLab/InternVideo2_chat_8B_HD) are released. 8B indicates the use of InternVideo2-1B and the 7B LLM.
-- `2024.07`: The video annotation for InternVid2 ([HuggingFace](https://huggingface.co/datasets/OpenGVLab/InternVideo2_Vid_Text)) is released.
-- `2024.06`: The full version of the video annotation (230M video-text pairs) for InternVid ([OpenDataLab](https://opendatalab.com/shepshep/InternVidFull) | [HuggingFace](https://huggingface.co/datasets/OpenGVLab/InternVid-Full)) is released.
-- `2024.04`: The [Checkpoints](https://huggingface.co/collections/OpenGVLab/internvideo2-6618ccb574bd2f91410df5cd) and scripts for InternVideo2 are released.
-- `2024.03`: The [technical report](https://arxiv.org/abs/2403.15377) of InternVideo2 is released.
-- `2024.01`: [InternVid](Data/InternVid) (a video-text dataset for video understanding and generation) has been accepted for spotlight presentation of ICLR 2024.
-- `2023.07`: A **video-text dataset InternVid** is released at [here](Data/InternVid) for facilitating multimodal understanding and generation.
-- `2023.05`: **Video instruction data** are released at [here](Data/instruction_data) for tuning end-to-end video-centric multimodal dialogue systems like [VideoChat](https://github.com/OpenGVLab/Ask-Anything).
-- `2023.01`: The [code & models](InternVideo1) of InternVideo are released.
-- `2022.12`: The [technical report](https://arxiv.org/pdf/2212.03191.pdf) of InternVideo is released.
-- `2022.09`: Press releases of InternVideo ([official](https://www.shlab.org.cn/news/5443279) | [163 news](https://www.163.com/dy/article/HG939TNR0530QRMB.html) | [qq news](https://new.qq.com/rain/a/20220902A053JP00)).
+The FlashAttention wheel below is specific to Python 3.11, Linux x86-64, and the CUDA/PyTorch/ABI combination encoded in its filename. Install a compatible wheel or build from source if your environment differs.
 
-## Contact
-- If you have any questions during the trial, running or deployment, feel free to join our WeChat group discussion! If you have any ideas or suggestions for the project, you are also welcome to join our WeChat group discussion!
-<div align='center'>
-<img src="https://github.com/user-attachments/assets/132a4d89-2c37-41fd-9057-6db68df85876" class="interpolation-image" alt="wechatgroup" height="15%" width="15%" />
-</div>
+Install PyTorch before building the extensions:
 
-- We are hiring researchers, engineers and interns in General Vision Group, Shanghai AI Lab. If you are interested in working with us on video foundation models and related topics, please contact Yi Wang (wangyi@pjlab.org.cn).
+```bash
+python3 -m pip install torch==2.4.1 \
+    --index-url https://download.pytorch.org/whl/cu118
+```
+
+Compiling the fused dense and layer normalization extensions requires a compatible CUDA toolkit, including `nvcc`, and a C++ compiler. The PyTorch wheel alone does not provide the full build toolchain. Ensure the Python build dependencies are installed:
+
+```bash
+python3 -m pip install setuptools wheel packaging ninja
+```
+
+Install FlashAttention and the two extensions:
+
+```bash
+python3 -m pip install "https://github.com/Dao-AILab/flash-attention/releases/download/v2.6.3/flash_attn-2.6.3+cu118torch2.4cxx11abiFALSE-cp311-cp311-linux_x86_64.whl"
+
+git clone --branch v2.6.3 https://github.com/Dao-AILab/flash-attention.git
+python3 -m pip install --no-build-isolation ./flash-attention/csrc/fused_dense_lib
+python3 -m pip install --no-build-isolation ./flash-attention/csrc/layer_norm
+```
+
+For the remaining commands, run from the directory containing the `InternVideo` folder:
+
+```bash
+python3 -m pip install --no-build-isolation ./InternVideo/InternVideo2/multi_modality
+```
+
+## Model weights
+
+The supported inference checkpoint is [OpenGVLab/InternVideo2-Stage2_1B-224p-f4](https://huggingface.co/OpenGVLab/InternVideo2-Stage2_1B-224p-f4), which uses four frames at a resolution of 224 × 224 pixels.
+
+This [checkpoint repository](https://huggingface.co/loreleva/InternVideo2-Stage2_1B-224p-f4) provides its vision and text encoder weights in separate files. The original model was developed by OpenGVLab.
+
+The download commands use the Hugging Face CLI (`hf`). If it is not available, install a version compatible with the package's pinned Transformers version:
+
+```bash
+python3 -m pip install "huggingface_hub>=0.34,<1.0"
+```
+
+### Download BERT files
+
+Download the BERT configuration, tokenizer files, and original BERT weights:
+
+```bash
+hf download google-bert/bert-large-uncased \
+    config.json \
+    model.safetensors \
+    special_tokens_map.json \
+    tokenizer_config.json \
+    vocab.txt \
+    --local-dir ./InternVideo/model_weights/bert-large-uncased
+```
+
+### Download InternVideo2 encoder weights
+
+```bash
+hf download loreleva/InternVideo2-Stage2_1B-224p-f4 \
+    InternVideo2-stage2_1b-224p-f4-vision_encoder.pt \
+    InternVideo2-stage2_1b-224p-f4-text_encoder.pt \
+    --local-dir ./InternVideo/model_weights
+```
+
+## Usage
+
+Both loaders require a configuration file. A configuration is provided at `InternVideo/internvideo2_config.py`. Update its BERT directory and encoder weight paths to match the downloaded files. Run the example from the same working directory used above.
+
+```python
+from internvideo2_multi_modality.inference import (
+    load_text_encoder,
+    load_vision_encoder,
+)
+import torch
+import torch.nn.functional as F
+
+config_path = "InternVideo/internvideo2_config.py"
+text_encoder = load_text_encoder(config_path)
+vision_encoder = load_vision_encoder(config_path)
+
+# Expected input shape: (batch_size, num_frames, channels, height, width).
+# For this checkpoint: (B, 4, 3, 224, 224).
+videos_tensor = ...
+
+with torch.inference_mode():
+    text_feat = text_encoder(["A cat playing", "A dog playing"])
+    text_feat = F.normalize(text_feat, dim=-1)
+
+    video_feat = vision_encoder(videos_tensor)
+    video_feat = F.normalize(video_feat, dim=-1)
+
+    similarities = video_feat @ text_feat.T
+```
+
+The video tensor must contain RGB frames sampled, resized, and normalized according to the original model's preprocessing. Its dtype and device must match the vision encoder. The example leaves video loading and preprocessing to the caller; `videos_tensor = ...` must be replaced with an actual tensor.
+
+## Attribution and license
+
+The original InternVideo2 model and code were developed by OpenGVLab. Refer to the [upstream repository](https://github.com/OpenGVLab/InternVideo) for the original implementation and citation information.
+
+The source checkpoint is published under Apache-2.0. Preserve its applicable license and attribution notices when redistributing the extracted weights, and observe any additional access terms accepted when obtaining the original checkpoint.
